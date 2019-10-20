@@ -60,7 +60,7 @@ namespace SimsSaves
         private async void LoadCloudSaves(object sender, DoWorkEventArgs e)
         {
             var cloudSaves = await _s3Client.ListObjectsV2Async(new Amazon.S3.Model.ListObjectsV2Request { BucketName = _bucketName });
-            foreach(var save in cloudSaves.S3Objects)
+            foreach (var save in cloudSaves.S3Objects)
             {
                 UpdateUi(AddItem(CloudSaveList, new SaveItem()
                 {
@@ -87,23 +87,40 @@ namespace SimsSaves
             }
         }
 
-        private void CompareLocalToCloud()
+        private Action CompareLocalToCloud(SaveItems saveItems)
         {
-            foreach(SaveItem localSave in LocalSaveList.Items)
+            return new Action(() =>
             {
-                if(CloudSaveList.Items.)
-            }
+                foreach (SaveItem localSave in saveItems.LocalSaves)
+                {
+                    if (saveItems.CloudSaves.Any(cf => cf.FileName.Remove(cf.FileName.Length - 4, 4) == localSave.FileName.Split('\\').Last()))
+                    {
+                        UpdateUi(new Action(() => MessageBox.Show(localSave.FileName)));
+                    }
+                }
+            });
+
         }
 
         private void SyncSavesButton_Click(object sender, RoutedEventArgs e)
         {
-
+            Task.Run(CompareLocalToCloud(new SaveItems
+            {
+                CloudSaves = CloudSaveList.Items.Cast<SaveItem>(),
+                LocalSaves = LocalSaveList.Items.Cast<SaveItem>()
+            }));
         }
 
         internal class SaveItem
         {
             public string FileName { get; set; }
             public string LastChangedTime { get; set; }
+        }
+
+        internal class SaveItems
+        {
+            public IEnumerable<SaveItem> LocalSaves { get; set; }
+            public IEnumerable<SaveItem> CloudSaves { get; set; }
         }
     }
 }
